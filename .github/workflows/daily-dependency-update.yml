@@ -1,0 +1,33 @@
+name: Daily dependency update
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update Rust dependencies
+        if: hashFiles('Cargo.toml') != ''
+        run: cargo update
+
+      - name: Skip until a Rust manifest exists
+        if: hashFiles('Cargo.toml') == ''
+        run: echo 'No Cargo.toml found; skipping dependency update.'
+
+      - name: Create or update pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          add-paths: Cargo.lock
+          branch: automation/daily-dependency-update
+          commit-message: 'chore: update Rust dependencies'
+          title: 'chore: update Rust dependencies'
+          body: 'Refresh Rust dependencies with `cargo update`.'
